@@ -1,8 +1,9 @@
+http://example.com/2022/12/13/hello-world/
 http://example.com/messageboard/index.html
 http://example.com/categories/index.html
 http://example.com/tags/index.html
 http://example.com/2022/12/13/Libaibubai-1/
 http://example.com/2022/12/13/Libaibubai/
 http://example.com/2022/12/13/test-my-site/
-http://example.com/2022/12/13/hello-world/
 http://example.com/
+http://example.com/categories/helloworld/

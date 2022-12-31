@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2022-12-16T08:19:28.450Z</updated>
+  <updated>2022-12-31T18:07:06.653Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>新年快乐</title>
+    <link href="http://example.com/2023/01/01/%E6%96%B0%E5%B9%B4%E5%BF%AB%E4%B9%90/"/>
+    <id>http://example.com/2023/01/01/%E6%96%B0%E5%B9%B4%E5%BF%AB%E4%B9%90/</id>
+    <published>2022-12-31T18:02:51.000Z</published>
+    <updated>2022-12-31T18:07:06.653Z</updated>
+    
+    <content type="html"><![CDATA[<p>第三旋臂边缘，一颗蓝色行星上，碳基生物正在庆祝，他们所在的行星又在该恒星系里，完成了一次公转。<br>银河系记住了那颗星星。</p><p>你好世界！<br>Hello world！</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;第三旋臂边缘，一颗蓝色行星上，碳基生物正在庆祝，他们所在的行星又在该恒星系里，完成了一次公转。&lt;br&gt;银河系记住了那颗星星。&lt;/p&gt;
+&lt;p&gt;你好世界！&lt;br&gt;Hello world！&lt;/p&gt;
+</summary>
+      
+    
+    
+    
+    <category term="节日" scheme="http://example.com/categories/%E8%8A%82%E6%97%A5/"/>
+    
+    
+    <category term="跨年" scheme="http://example.com/tags/%E8%B7%A8%E5%B9%B4/"/>
+    
+  </entry>
   
   <entry>
     <title>用python做记事本</title>

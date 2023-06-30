@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CMD 窗口</title>
+  <style>
+    body {
+      background-color: #000000;
+      color: #00FF00;
+      font-family: 'Lucida Console', monospace;
+      padding: 10px;
+    }
+    #output {
+      height: 300px;
+      overflow: auto;
+      border: 1px solid #00FF00;
+      padding: 5px;
+      background-color: #000000;
+      color: #00FF00;
+      font-family: 'Lucida Console', monospace;
+      margin-bottom: 10px;
+    }
+    #input {
+      width: 100%;
+      border: none;
+      background-color: #000000;
+      color: #00FF00;
+      padding: 5px;
+      box-sizing: border-box;
+      outline: none;
+      font-family: 'Lucida Console', monospace;
+    }
+    .candidate-list {
+      position: absolute;
+      background-color: #000000;
+      color: #00FF00;
+      padding: 5px;
+      box-sizing: border-box;
+      border: 1px solid #00FF00;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: 'Lucida Console', monospace;
+    }
+    .candidate-item {
+      cursor: pointer;
+      padding: 2px;
+    }
+  </style>
+</head>
+<body>
+  <div id="output"></div>
+  <input id="input" type="text" autofocus />
+
+  <div id="candidate-list" class="candidate-list"></div>
+
+  <script>
+    const outputDiv = document.getElementById('output');
+    const inputBox = document.getElementById('input');
+    const candidateList = document.getElementById('candidate-list');
+    let typingSpeed = 100; // 默认打字速度
+    let commandHistory = [];
+    let historyIndex = -1;
+    const commands = [
+      'date',
+      'time',
+      'clear',
+      'matrix',
+      'hello',
+      'bye',
+      'start ',
+      'search',
+      'help',
+      'calc' // 计算器命令
+    ];
+    let bookmarks = [];
+
+    // 检查本地存储中是否存在收藏夹数据
+    const storedBookmarks = localStorage.getItem('bookmarks');
+    if (storedBookmarks) {
+    bookmarks = JSON.parse(storedBookmarks);
+    }
+
+    inputBox.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        const inputText = inputBox.value;
+        inputBox.value = '';
+
+        processCommand(inputText);
+        commandHistory.push(inputText);
+        historyIndex = commandHistory.length;
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (historyIndex > 0) {
+          historyIndex--;
+          inputBox.value = commandHistory[historyIndex];
+        }
+      } else if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (historyIndex < commandHistory.length - 1) {
+          historyIndex++;
+          inputBox.value = commandHistory[historyIndex];
+        } else {
+          historyIndex = commandHistory.length;
+          inputBox.value = '';
+        }
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        autoCompleteCommand();
+      }
+    });
+
+    inputBox.addEventListener('input', function(event) {
+      const inputText = event.target.value.trim();
+      if (inputText && inputText !== 'clear') {
+        const matchingCommands = commands.filter(function(command) {
+          return command.startsWith(inputText);
+        });
+        if (matchingCommands.length > 0) {
+          showCommandCandidates(matchingCommands);
+        } else {
+          hideCommandCandidates();
+        }
+      } else {
+        hideCommandCandidates();
+      }
+    });
+
+    function showCommandCandidates(commands) {
+      candidateList.innerHTML = '';
+
+      for (let i = 0; i < commands.length; i++) {
+        const candidateItem = document.createElement('div');
+        candidateItem.textContent = commands[i];
+        candidateItem.classList.add('candidate-item');
+
+        candidateItem.addEventListener('click', function() {
+          inputBox.value = commands[i];
+          hideCommandCandidates();
+        });
+
+        candidateList.appendChild(candidateItem);
+      }
+
+      candidateList.style.display = 'block';
+    }
+
+    function hideCommandCandidates() {
+      candidateList.style.display = 'none';
+    }
+
+    function processCommand(command) {
+      const outputLine = document.createElement('div');
+      outputLine.textContent = '> ' + command;
+      outputDiv.appendChild(outputLine);
+
+      if (command === 'help') {
+        typeWriterEffect('这是一个增强版CMD窗口演示。你可以尝试输入以下命令：\n\n' +
+          'date - 显示当前日期\n' +
+          'time - 显示当前时间\n' +
+          'clear - 清空输出\n' +
+          'matrix - 启动Matrix代码雨\n' +
+          'hello - 打招呼\n' +
+          'bye - 告别\n' +
+          'start [url]- 打开一个新标签页\n' +
+          'search [搜索指定关键词] -[b/g/bi] \n' +
+          'calc - 打开一个简单的计算器\n\n' +
+          '你还可以使用以下命令管理收藏夹中的网址：\n\n' +
+          'ls - 查看收藏夹中的网址\n' +
+          'add [网址] - 将网址添加到收藏夹\n' +
+          'rm [索引] - 从收藏夹中移除指定索引的网址\n' +
+          'go [索引] - 打开收藏夹中指定索引的网址');
+      } else if (command === 'ls') {
+        listBookmarks();
+      } else if (command.startsWith('add ')) {
+        const url = command.substring(4);
+        addBookmark(url);
+      } else if (command.startsWith('rm ')) {
+        const index = parseInt(command.substring(3));
+        removeBookmark(index);
+      } else if (command.startsWith('go ')) {
+        const index = parseInt(command.substring(3));
+        goToBookmark(index);
+      } else if (command === 'date') {
+        typeWriterEffect(new Date().toLocaleDateString());
+      } else if (command === 'time') {
+        typeWriterEffect(new Date().toLocaleTimeString());
+      } else if (command === 'clear') {
+        clearOutput();
+      } else if (command === 'matrix') {
+        startMatrixRain();
+      } else if (command === 'hello') {
+        typeWriterEffect('你好！');
+      } else if (command === 'bye') {
+        typeWriterEffect('再见！');
+      } else if (command.startsWith('start ')) {
+        const url = command.substring(6).trim();
+        openUrlInNewTab(url);
+    
+      } else if (command.startsWith('search ')) {
+        const keyword = command.substring(7);
+        search(keyword);
+      } else if (command === 'calc') {
+        openCalculator();
+      } else {
+        typeWriterEffect('未知命令：' + command);
+      }
+    }
+
+    function typeWriterEffect(text) {
+      const outputLine = document.createElement('div');
+      outputLine.classList.add('output-line');
+      outputDiv.appendChild(outputLine);
+
+      let i = 0;
+      const timerId = setInterval(function() {
+        outputLine.textContent += text[i];
+        i++;
+        if (i === text.length) {
+          clearInterval(timerId);
+          outputDiv.scrollTop = outputDiv.scrollHeight;
+          inputBox.focus();
+        }
+      }, typingSpeed);
+    }
+
+    function clearOutput() {
+      outputDiv.innerHTML = '';
+      inputBox.focus();
+    }
+
+    function startMatrixRain() {
+      // Matrix 代码雨效果的代码 (同上代码)
+    }
+
+
+    function search(keyword) {
+      const searchUrl = 'https://www.baidu.com/s?wd=' + encodeURIComponent(keyword);
+      openUrlInNewTab(searchUrl);
+    }
+
+    function openCalculator() {
+      const calcUrl = 'https://www.baidu.com/s?wd=calculator';
+      openUrlInNewTab(calcUrl);
+    }
+
+    function openUrlInNewTab(url) {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'http://' + url;
+        }
+        
+        const win = window.open(url, '_blank');
+        win.focus();
+        typeWriterEffect('已在新标签页中打开网址：' + url);
+        }
+
+    function autoCompleteCommand() {
+      const inputText = inputBox.value;
+      const matchingCommands = commands.filter(function(command) {
+        return command.startsWith(inputText);
+      });
+      if (matchingCommands.length === 1) {
+        inputBox.value = matchingCommands[0];
+      }
+    }
+
+    function listBookmarks() {
+      if (bookmarks.length === 0) {
+        typeWriterEffect('收藏夹为空');
+      } else {
+        typeWriterEffect('收藏夹中的网址：');
+        for (let i = 0; i < bookmarks.length; i++) {
+          const bookmark = bookmarks[i];
+          typeWriterEffect(i + ': ' + bookmark);
+        }
+      }
+    }
+
+    function saveBookmarksToLocalStorage() {
+        localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+    }
+
+    function addBookmark(url) {
+      bookmarks.push(url);
+      saveBookmarksToLocalStorage(); // 将收藏夹数据保存到本地存储
+      typeWriterEffect('已添加网址到收藏夹：' + url);
+    }
+
+    function removeBookmark(index) {
+        if (index >= 0 && index < bookmarks.length) {
+            const removedUrl = bookmarks.splice(index, 1);
+            saveBookmarksToLocalStorage(); // 将收藏夹数据保存到本地存储
+            typeWriterEffect('已从收藏夹中移除网址：' + removedUrl);
+        } else {
+            typeWriterEffect('无效的索引：' + index);
+        }
+        }
+
+    function goToBookmark(index) {
+      if (index >= 0 && index < bookmarks.length) {
+        const url = bookmarks[index];
+        window.open('http://' + url, '_blank');
+        typeWriterEffect('正在打开网址：' + url);
+      } else {
+        typeWriterEffect('无效的索引：' + index);
+      }
+    }
+  </script>
+</body>
+</html>

@@ -53,10 +53,13 @@
 
   <div id="candidate-list" class="candidate-list"></div>
 
+  <div id="todo-list"></div>
+
   <script>
     const outputDiv = document.getElementById('output');
     const inputBox = document.getElementById('input');
     const candidateList = document.getElementById('candidate-list');
+    const todoList = document.getElementById('todo-list');
     let typingSpeed = 100; // 默认打字速度
     let commandHistory = [];
     let historyIndex = -1;
@@ -70,14 +73,20 @@
       'start ',
       'search',
       'help',
-      'calc' // 计算器命令
+      'calc',
+      'add',
+      'rm',
+      'ls',
+      'todo',
+      'done'// 计算器命令
     ];
     let bookmarks = [];
+    let todos = [];
 
     // 检查本地存储中是否存在收藏夹数据
     const storedBookmarks = localStorage.getItem('bookmarks');
     if (storedBookmarks) {
-    bookmarks = JSON.parse(storedBookmarks);
+      bookmarks = JSON.parse(storedBookmarks);
     }
 
     inputBox.addEventListener('keydown', function (event) {
@@ -110,156 +119,253 @@
     });
 
     inputBox.addEventListener('input', function(event) {
-      const inputText = event.target.value.trim();
-      if (inputText && inputText !== 'clear') {
-        const matchingCommands = commands.filter(function(command) {
-          return command.startsWith(inputText);
-        });
-        if (matchingCommands.length > 0) {
-          showCommandCandidates(matchingCommands);
+      const inputText = inputBox.value.trim();
+      const lastSpaceIndex = inputText.lastIndexOf(' ');
+      const currentCommand = lastSpaceIndex === -1 ? inputText : inputText.substring(lastSpaceIndex + 1);
+      if (currentCommand.length > 0) {
+        const filteredCommands = commands.filter(command => command.startsWith(currentCommand));
+        if (filteredCommands.length > 0) {
+          showCandidateList(filteredCommands);
         } else {
-          hideCommandCandidates();
+          hideCandidateList();
         }
       } else {
-        hideCommandCandidates();
+        hideCandidateList();
       }
     });
 
-    function showCommandCandidates(commands) {
+    function showCandidateList(filteredCommands) {
       candidateList.innerHTML = '';
-
-      for (let i = 0; i < commands.length; i++) {
-        const candidateItem = document.createElement('div');
-        candidateItem.textContent = commands[i];
-        candidateItem.classList.add('candidate-item');
-
-        candidateItem.addEventListener('click', function() {
-          inputBox.value = commands[i];
-          hideCommandCandidates();
+      filteredCommands.forEach(command => {
+        const item = document.createElement('div');
+        item.classList.add('candidate-item');
+        item.textContent = command;
+        item.addEventListener('click', function() {
+          replaceCommand(command);
         });
-
-        candidateList.appendChild(candidateItem);
-      }
+        candidateList.appendChild(item);
+      });
 
       candidateList.style.display = 'block';
     }
 
-    function hideCommandCandidates() {
+    function hideCandidateList() {
       candidateList.style.display = 'none';
     }
 
-    function processCommand(command) {
-      const outputLine = document.createElement('div');
-      outputLine.textContent = '> ' + command;
-      outputDiv.appendChild(outputLine);
+    function replaceCommand(command) {
+      const inputText = inputBox.value.trim();
+      const lastSpaceIndex = inputText.lastIndexOf(' ');
+      const newText = lastSpaceIndex === -1 ? command : inputText.substring(0, lastSpaceIndex + 1) + command;
+      inputBox.value = newText;
+      hideCandidateList();
+    }
 
-      if (command === 'help') {
-        typeWriterEffect('这是一个增强版CMD窗口演示。你可以尝试输入以下命令：\n\n' +
-          'date - 显示当前日期\n' +
-          'time - 显示当前时间\n' +
-          'clear - 清空输出\n' +
-          'matrix - 启动Matrix代码雨\n' +
-          'hello - 打招呼\n' +
-          'bye - 告别\n' +
-          'start [url]- 打开一个新标签页\n' +
-          'search [搜索指定关键词] -[b/g/bi] \n' +
-          'calc - 打开一个简单的计算器\n\n' +
-          '你还可以使用以下命令管理收藏夹中的网址：\n\n' +
-          'ls - 查看收藏夹中的网址\n' +
-          'add [网址] - 将网址添加到收藏夹\n' +
-          'rm [索引] - 从收藏夹中移除指定索引的网址\n' +
-          'go [索引] - 打开收藏夹中指定索引的网址');
-      } else if (command === 'ls') {
-        listBookmarks();
-      } else if (command.startsWith('add ')) {
-        const url = command.substring(4);
-        addBookmark(url);
-      } else if (command.startsWith('rm ')) {
-        const index = parseInt(command.substring(3));
-        removeBookmark(index);
-      } else if (command.startsWith('go ')) {
-        const index = parseInt(command.substring(3));
-        goToBookmark(index);
-      } else if (command === 'date') {
-        typeWriterEffect(new Date().toLocaleDateString());
-      } else if (command === 'time') {
-        typeWriterEffect(new Date().toLocaleTimeString());
-      } else if (command === 'clear') {
-        clearOutput();
-      } else if (command === 'matrix') {
-        startMatrixRain();
-      } else if (command === 'hello') {
-        typeWriterEffect('你好！');
-      } else if (command === 'bye') {
-        typeWriterEffect('再见！');
-      } else if (command.startsWith('start ')) {
-        const url = command.substring(6).trim();
-        openUrlInNewTab(url);
-    
-      } else if (command.startsWith('search ')) {
-        const keyword = command.substring(7);
-        search(keyword);
-      } else if (command === 'calc') {
-        openCalculator();
-      } else {
-        typeWriterEffect('未知命令：' + command);
+    function autoCompleteCommand() {
+      const inputText = inputBox.value.trim();
+      const lastSpaceIndex = inputText.lastIndexOf(' ');
+      const currentCommand = lastSpaceIndex === -1 ? inputText : inputText.substring(lastSpaceIndex + 1);
+      if (currentCommand.length > 0) {
+        const filteredCommands = commands.filter(command => command.startsWith(currentCommand));
+        if (filteredCommands.length === 1) {
+          replaceCommand(filteredCommands[0]);
+        }
       }
     }
 
-    function typeWriterEffect(text) {
-      const outputLine = document.createElement('div');
-      outputLine.classList.add('output-line');
-      outputDiv.appendChild(outputLine);
+    function processCommand(command) {
+      const outputText = '> ' + command;
+      addOutput(outputText);
 
-      let i = 0;
-      const timerId = setInterval(function() {
-        outputLine.textContent += text[i];
-        i++;
-        if (i === text.length) {
-          clearInterval(timerId);
-          outputDiv.scrollTop = outputDiv.scrollHeight;
-          inputBox.focus();
-        }
-      }, typingSpeed);
+      if (command === 'date') {
+        const date = new Date();
+        const dateString = date.toLocaleDateString();
+        typeWriterEffect(dateString);
+      } else if (command === 'time') {
+        const date = new Date();
+        const timeString = date.toLocaleTimeString();
+        typeWriterEffect(timeString);
+      } else if (command === 'clear') {
+        clearOutput();
+      } else if (command === 'matrix') {
+        startMatrix();
+      } else if (command === 'hello') {
+        typeWriterEffect('Hello, world!');
+      } else if (command === 'bye') {
+        typeWriterEffect('Goodbye!');
+      } else if (command.startsWith('start ')) {
+        const url = command.substring(6).trim();
+        openURL(url);
+      } else if (command === 'search') {
+        typeWriterEffect('搜索功能尚未实现');
+      } else if (command === 'help') {
+        showHelp();
+      } else if (command === 'calc') {
+        typeWriterEffect('计算器功能尚未实现');
+      } else if (command.startsWith('bookmark ')) {
+        const url = command.substring(9).trim();
+        addBookmark(url);
+      } else if (command === 'bookmarks') {
+        listBookmarks();
+      } else if (command === 'todos') {
+        listTodos();
+      } else if (command.startsWith('todo ')) {
+        const todoText = command.substring(5).trim();
+        addTodoItem(todoText);
+      } else if (command.startsWith('done ')) {
+        const index = parseInt(command.substring(5));
+        completeTodoItem(index);
+      } else if (command === 'ls') {
+          listBookmarks();
+      } else if (command.startsWith('add ')) {
+          const url = command.substring(4);
+          addBookmark(url);
+      } else if (command.startsWith('rm ')) {
+          const index = parseInt(command.substring(3));
+          removeBookmark(index);
+      } else if (command.startsWith('go ')) {
+        const index = parseInt(command.substring(3));
+        goToBookmark(index);
+      } else if (command.startsWith('search ')) {
+          const keyword = command.substring(7);
+          search(keyword);
+      } else if (command.startsWith('start ')) {
+          const url = command.substring(6).trim();
+          openUrlInNewTab(url);
+      }else {
+        typeWriterEffect("无效的命令。输入 'help' 查看可用命令列表。");
+      }
+    }
+
+    function addOutput(text) {
+      const outputLine = document.createElement('div');
+      outputLine.textContent = text;
+      outputDiv.appendChild(outputLine);
+      outputDiv.scrollTop = outputDiv.scrollHeight;
     }
 
     function clearOutput() {
       outputDiv.innerHTML = '';
-      inputBox.focus();
     }
 
-    function startMatrixRain() {
-      // Matrix 代码雨效果的代码 (同上代码)
-    }
+    function typeWriterEffect(text) {
+      let index = 0;
+      const speed = typingSpeed;
+      const outputLine = document.createElement('div');
+      outputDiv.appendChild(outputLine);
 
-
-    function search(keyword) {
-      const searchUrl = 'https://www.baidu.com/s?wd=' + encodeURIComponent(keyword);
-      openUrlInNewTab(searchUrl);
-    }
-
-    function openCalculator() {
-      const calcUrl = 'https://www.baidu.com/s?wd=calculator';
-      openUrlInNewTab(calcUrl);
-    }
-
-    function openUrlInNewTab(url) {
-        if (!url.startsWith('http://') && !url.startsWith('https://')) {
-            url = 'http://' + url;
+      function typeNextCharacter() {
+        if (index < text.length) {
+          const char = text.charAt(index);
+          outputLine.textContent += char;
+          index++;
+          setTimeout(typeNextCharacter, speed);
         }
-        
-        const win = window.open(url, '_blank');
-        win.focus();
-        typeWriterEffect('已在新标签页中打开网址：' + url);
-        }
+      }
 
-    function autoCompleteCommand() {
-      const inputText = inputBox.value;
-      const matchingCommands = commands.filter(function(command) {
-        return command.startsWith(inputText);
+      typeNextCharacter();
+      outputDiv.scrollTop = outputDiv.scrollHeight;
+    }
+
+    function startMatrix() {
+      clearOutput();
+      const matrixLine = document.createElement('div');
+      matrixLine.style.fontFamily = 'Lucida Console, monospace';
+      matrixLine.style.fontSize = '12px';
+      matrixLine.style.whiteSpace = 'pre';
+      outputDiv.appendChild(matrixLine);
+
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      const speed = 50;
+      let index = 0;
+
+      function typeNextCharacter() {
+        if (index < characters.length) {
+          const char = characters.charAt(index);
+          matrixLine.textContent += char;
+          index++;
+          setTimeout(typeNextCharacter, speed);
+        }
+      }
+
+      typeNextCharacter();
+      outputDiv.scrollTop = outputDiv.scrollHeight;
+    }
+
+    function openURL(url) {
+      window.open(url, '_blank');
+    }
+
+    function showHelp() {
+      const helpText = `
+        可用命令列表：
+        date - 显示当前日期
+        time - 显示当前时间
+        clear - 清空输出
+        matrix - 启动 Matrix 字符效果
+        hello - 输出 "Hello, world!"
+        bye - 输出 "Goodbye!"
+        start <url> - 在新窗口打开指定 URL
+        search - 搜索功能（尚未实现）
+        help - 显示帮助信息
+        calc - 计算器功能（尚未实现）
+        bookmark <url> - 添加书签
+        bookmarks - 显示书签列表
+        todo <text> - 添加待办事项
+        todos - 显示待办事项列表
+        done <index> - 完成指定的待办事项
+      `;
+      typeWriterEffect(helpText);
+    }
+
+    function addBookmark(url) {
+      bookmarks.push(url);
+      localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
+      typeWriterEffect(`已添加书签: ${url}`);
+    }
+
+    function listBookmarks() {
+      typeWriterEffect('书签列表:');
+      bookmarks.forEach((bookmark, index) => {
+        typeWriterEffect(`${index + 1}. ${bookmark}`);
       });
-      if (matchingCommands.length === 1) {
-        inputBox.value = matchingCommands[0];
+    }
+
+    function addTodoItem(text) {
+      todos.push({ text, completed: false });
+      typeWriterEffect(`已添加待办事项: ${text}`);
+    }
+
+    function listTodos() {
+      typeWriterEffect('待办事项列表:');
+      todos.forEach((todo, index) => {
+        const status = todo.completed ? '[X]' : '[ ]';
+        typeWriterEffect(`${index + 1}. ${status} ${todo.text}`);
+      });
+    }
+
+    function completeTodoItem(index) {
+      if (index >= 1 && index <= todos.length) {
+        const todo = todos[index - 1];
+        if (!todo.completed) {
+          todo.completed = true;
+          typeWriterEffect(`已完成待办事项: ${todo.text}`);
+        } else {
+          typeWriterEffect(`该待办事项已完成: ${todo.text}`);
+        }
+      } else {
+        typeWriterEffect('无效的待办事项索引');
+      }
+    }
+
+
+    function goToBookmark(index) {
+      if (index >= 0 && index < bookmarks.length) {
+        const url = bookmarks[index];
+        window.open('http://' + url, '_blank');
+        typeWriterEffect('正在打开网址：' + url);
+      } else {
+        typeWriterEffect('无效的索引：' + index);
       }
     }
 
@@ -275,10 +381,6 @@
       }
     }
 
-    function saveBookmarksToLocalStorage() {
-        localStorage.setItem('bookmarks', JSON.stringify(bookmarks));
-    }
-
     function addBookmark(url) {
       bookmarks.push(url);
       saveBookmarksToLocalStorage(); // 将收藏夹数据保存到本地存储
@@ -286,23 +388,20 @@
     }
 
     function removeBookmark(index) {
-        if (index >= 0 && index < bookmarks.length) {
-            const removedUrl = bookmarks.splice(index, 1);
-            saveBookmarksToLocalStorage(); // 将收藏夹数据保存到本地存储
-            typeWriterEffect('已从收藏夹中移除网址：' + removedUrl);
-        } else {
-            typeWriterEffect('无效的索引：' + index);
-        }
-        }
-
-    function goToBookmark(index) {
       if (index >= 0 && index < bookmarks.length) {
-        const url = bookmarks[index];
-        window.open('http://' + url, '_blank');
-        typeWriterEffect('正在打开网址：' + url);
+        const removedUrl = bookmarks.splice(index, 1);
+        saveBookmarksToLocalStorage(); // 将收藏夹数据保存到本地存储
+        typeWriterEffect('已从收藏夹中移除网址：' + removedUrl);
       } else {
         typeWriterEffect('无效的索引：' + index);
       }
+    }
+
+
+    function search(keyword) {
+      const searchUrl = 'https://www.baidu.com/s?wd=' + encodeURIComponent(keyword);
+      window.open(searchUrl, '_blank');
+      typeWriterEffect('正在搜索：' + keyword);
     }
   </script>
 </body>
